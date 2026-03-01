@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excalidraw Editor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #101010;
+      --surface:   #181818;
+      --accent:    #e07840;
+      --text:      #ede8e3;
+      --text-dim:  #8a8480;
+      --border:    rgba(160,150,140,0.22);
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ── Top toolbar ── */
+    #toolbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 46px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 12px;
+      z-index: 9999;
+      backdrop-filter: blur(8px);
+    }
+
+    #toolbar .note-name {
+      flex: 1;
+      font-size: 0.9rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #toolbar button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    #toolbar button:hover { background: rgba(255,255,255,0.06); }
+    #toolbar #btn-save {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    #toolbar #btn-save:hover { filter: brightness(1.12); }
+    #toolbar #btn-save:disabled { opacity: 0.5; cursor: default; filter: none; }
+
+    /* ── Status badge ── */
+    #status {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      min-width: 80px;
+      text-align: right;
+    }
+    #status.saving  { color: #ebcb8b; }
+    #status.saved   { color: #a3be8c; }
+    #status.error   { color: #bf616a; }
+
+    /* ── Excalidraw container ── */
+    #excalidraw-root {
+      position: fixed;
+      top: 46px; left: 0; right: 0; bottom: 0;
+    }
+
+    /* ── Loading overlay ── */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 99999;
+      transition: opacity 0.3s;
+    }
+    #loading.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { color: var(--text-dim); font-size: 0.9rem; }
+
+    /* ── Error banner ── */
+    #error-banner {
+      display: none;
+      position: fixed;
+      top: 46px; left: 0; right: 0;
+      background: #bf616a;
+      color: #fff;
+      padding: 10px 16px;
+      font-size: 0.88rem;
+      z-index: 10000;
+    }
+  </style>
+
+  <!-- React 18 + ReactDOM (UMD) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Excalidraw 0.17.6 UMD bundle (injects its own CSS) -->
+  <script src="https://unpkg.com/@excalidraw/excalidraw@0.17.6/dist/excalidraw.production.min.js"></script>
+</head>
+<body>
+
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <button id="btn-back" title="Back to notes" onclick="goBack()">
+      ← Back
+    </button>
+    <span class="note-name" id="note-label">Loading…</span>
+    <span id="status"></span>
+    <button id="btn-save" onclick="saveDrawing()" disabled>Save</button>
+  </div>
+
+  <!-- Error banner -->
+  <div id="error-banner" id="error-banner"></div>
+
+  <!-- Loading overlay -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading drawing…</p>
+  </div>
+
+  <!-- Excalidraw mount point -->
+  <div id="excalidraw-root"></div>
+
+  <script>
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    const params      = new URLSearchParams(window.location.search);
+    const notePath    = params.get('note');   // e.g. "MyFolder/diagram.excalidraw.md"
+    const returnUrl   = params.get('back') || '/';
+
+    let excalidrawAPI  = null;
+    let saveTimeout    = null;
+    let isDirty        = false;
+    let mountComplete  = false;   // true only after Excalidraw finishes its initial render
+    let savedVersion   = -1;      // sum of all element versions at last save
+
+    // Returns a cheap scene fingerprint: sum of every element's version counter.
+    // Adding a new element (version=1) or editing one (version++) both change the sum.
+    function sceneVersion() {
+      if (!excalidrawAPI) return -1;
+      return excalidrawAPI.getSceneElements()
+        .reduce((sum, el) => sum + (el.version ?? 1), 0);
+    }
+
+    function goBack() {
+      window.location.href = returnUrl;
+    }
+
+    function showError(msg) {
+      const banner = document.getElementById('error-banner');
+      banner.textContent = '⚠ ' + msg;
+      banner.style.display = 'block';
+    }
+
+    function setStatus(text, cls = '') {
+      const el = document.getElementById('status');
+      el.textContent   = text;
+      el.className     = cls;
+    }
+
+    function setDirty(dirty) {
+      isDirty = dirty;
+      document.getElementById('btn-save').disabled = !dirty;
+      if (dirty) setStatus('Unsaved changes', 'saving');
+    }
+
+    // Encode a note path for use in a URL path segment.
+    // FastAPI's {note_path:path} accepts literal slashes, so we only encode
+    // characters that are actually illegal in URL paths (not '/').
+    function encodeNotePath(p) {
+      return p.split('/').map(encodeURIComponent).join('/');
+    }
+
+    // ── Load drawing data ─────────────────────────────────────────────────────
+
+    async function loadDrawingData() {
+      if (!notePath) return { elements: [], appState: {}, files: {} };
+      try {
+        const res = await fetch(`/api/excalidraw-data/${encodeNotePath(notePath)}`);
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        return await res.json();
+      } catch (e) {
+        showError('Failed to load drawing: ' + e.message);
+        return { elements: [], appState: {}, files: {} };
+      }
+    }
+
+    // ── Save drawing ─────────────────────────────────────────────────────────
+
+    async function saveDrawing() {
+      clearTimeout(saveTimeout);   // cancel any pending auto-save
+      saveTimeout = null;
+
+      if (!excalidrawAPI) {
+        console.error('[excalidraw] saveDrawing: excalidrawAPI is not set yet');
+        showError('Editor not ready — please wait a moment and try again.');
+        return;
+      }
+      if (!notePath) {
+        console.error('[excalidraw] saveDrawing: notePath is empty');
+        showError('No note path — cannot save.');
+        return;
+      }
+      const btnSave = document.getElementById('btn-save');
+      btnSave.disabled = true;
+      setStatus('Saving…', 'saving');
+
+      try {
+        const elements  = excalidrawAPI.getSceneElements();
+        const appState  = excalidrawAPI.getAppState();
+        const files     = excalidrawAPI.getFiles();
+
+        // Snapshot the version before the fetch so we can compare after
+        const versionAtSave = sceneVersion();
+
+        const body = {
+          type:     'excalidraw',
+          version:  2,
+          source:   'notediscovery',
+          elements: elements,
+          appState: {
+            gridSize:            appState.gridSize,
+            viewBackgroundColor: appState.viewBackgroundColor,
+          },
+          files: files || {},
+        };
+
+        const res = await fetch(`/api/excalidraw-data/${encodeNotePath(notePath)}`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(body),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: res.statusText }));
+          throw new Error(err.detail || res.statusText);
+        }
+
+        savedVersion = versionAtSave;
+        isDirty = false;
+        setStatus('Saved ✓', 'saved');
+        btnSave.disabled = true;
+        setTimeout(() => setStatus(''), 3000);
+      } catch (e) {
+        showError('Save failed: ' + e.message);
+        setStatus('Save failed', 'error');
+        btnSave.disabled = false;
+      }
+    }
+
+    // ── Auto-save (debounced 2 s) ─────────────────────────────────────────────
+
+    function scheduleAutoSave() {
+      if (!mountComplete || !excalidrawAPI) return;
+      if (sceneVersion() === savedVersion) return;
+      setDirty(true);
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveDrawing, 2000);
+    }
+
+    // ── Mount Excalidraw ─────────────────────────────────────────────────────
+
+    async function mountExcalidraw() {
+      const data = await loadDrawingData();
+
+      if (!notePath) {
+        document.getElementById('note-label').textContent = 'New Drawing (no path set)';
+        showError('No note path provided in URL (?note=…). Changes will not be saved.');
+      } else {
+        const name = notePath.split('/').pop().replace(/\.excalidraw\.md$|\.excalidraw$/, '');
+        document.getElementById('note-label').textContent = name;
+        document.title = `${name} – Drawing Editor`;
+      }
+
+      const { Excalidraw } = window.ExcalidrawLib;
+      const { createElement } = React;
+
+      // ── Library persistence via localStorage ────────────────────────────
+      const LIBRARY_KEY = 'notediscovery_excalidraw_library';
+
+      function loadLibraryItems() {
+        try {
+          const raw = localStorage.getItem(LIBRARY_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch { return []; }
+      }
+
+      function handleLibraryChange(items) {
+        try {
+          localStorage.setItem(LIBRARY_KEY, JSON.stringify(items));
+        } catch { /* quota exceeded — ignore */ }
+      }
+
+      // excalidrawAPI prop is the officially supported way to receive the API
+      // object in Excalidraw 0.17.x — it is called synchronously before any
+      // onChange fires, so there is no race condition.
+      function handleExcalidrawAPI(api) {
+        excalidrawAPI = api;
+        window._excalidrawAPI = api;   // handy for debugging in the console
+        // Snapshot the initial version so the freshly-loaded state isn't dirty
+        savedVersion = sceneVersion();
+        mountComplete = true;          // safe to handle onChange from now on
+
+        // ── Handle #addLibrary redirect from excalidraw.com ─────────────────
+        // When the user clicks "Add to Excalidraw" on the library site, they
+        // are redirected back here with #addLibrary=<url>&token=<token>.
+        // We fetch the .excalidrawlib file ourselves and merge it in.
+        const hash = new URLSearchParams(window.location.hash.slice(1));
+        const libUrl = hash.get('addLibrary');
+        if (libUrl) {
+          // Clear the hash so a page-refresh doesn't re-import
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+          // Fetch through our backend proxy to avoid CORS issues with libraries.excalidraw.com
+          fetch('/api/library-proxy?url=' + encodeURIComponent(libUrl))
+            .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json(); })
+            .then(libData => {
+              const items = libData.libraryItems ?? libData.library ?? [];
+              api.updateLibrary({
+                libraryItems: items,
+                merge: true,
+                openLibraryMenu: true,
+              });
+            })
+            .catch(err => showError('Library import failed: ' + err.message));
+        }
+      }
+
+      function App() {
+        return createElement(Excalidraw, {
+          excalidrawAPI:    handleExcalidrawAPI,
+          initialData: {
+            elements: data.elements  || [],
+            appState: {
+              ...(data.appState || {}),
+              theme: 'dark',
+            },
+            files:        data.files || null,
+            libraryItems: loadLibraryItems(),
+          },
+          theme:            'dark',
+          onChange:         scheduleAutoSave,
+          onLibraryChange:  handleLibraryChange,
+          libraryReturnUrl: window.location.origin + '/excalidraw-editor?note=' + encodeURIComponent(notePath || '') + '&back=' + encodeURIComponent(returnUrl),
+          UIOptions: {
+            canvasActions: {
+              saveToActiveFile: false,
+              export: { saveFileToDisk: true },
+            },
+          },
+        });
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('excalidraw-root'));
+      root.render(createElement(App));
+
+      // ── Intercept "Browse libraries" so it navigates the current tab ────────
+      // Excalidraw calls window.open() for the library browse link, which opens
+      // a new tab. We watch for the anchor that contains the excalidraw.com
+      // library URL and replace its target + click handler so it navigates here.
+      const libraryReturnUrl = window.location.origin
+        + '/excalidraw-editor?note=' + encodeURIComponent(notePath || '')
+        + '&back=' + encodeURIComponent(returnUrl);
+
+      function rewireLibraryLinks() {
+        document.querySelectorAll('a[href*="excalidraw.com/libraries"], a[href*="libraries.excalidraw.com"]')
+          .forEach(a => {
+            if (a.dataset.rewired) return;
+            a.dataset.rewired = '1';
+            a.removeAttribute('target');   // drop target="_blank"
+            a.addEventListener('click', e => {
+              e.preventDefault();
+              e.stopPropagation();
+              // Rebuild the href with our own referrer so excalidraw.com sends us back here
+              const dest = new URL(a.href);
+              dest.searchParams.set('referrer', libraryReturnUrl);
+              window.location.href = dest.toString();
+            }, true);
+          });
+      }
+
+      // Watch for the library panel opening (it's rendered lazily)
+      const _libObserver = new MutationObserver(rewireLibraryLinks);
+      _libObserver.observe(document.getElementById('excalidraw-root'), { childList: true, subtree: true });
+
+      // Hide loading overlay
+      const loadingEl = document.getElementById('loading');
+      loadingEl.classList.add('hidden');
+      setTimeout(() => loadingEl.remove(), 400);
+    }
+
+    // Kick off once all UMD scripts are ready
+    window.addEventListener('load', mountExcalidraw);
+
+    // Warn before leaving with unsaved changes
+    window.addEventListener('beforeunload', (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
+  </script>
+</body>
+</html>

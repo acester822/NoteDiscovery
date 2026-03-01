@@ -466,7 +466,7 @@
             flex-direction: column;
             align-items: center;
             padding: 1.5rem;
-            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
         }
         .markdown-preview .media-audio audio {
@@ -482,7 +482,7 @@
         
         /* Video embeds */
         .markdown-preview .media-video {
-            background: #000;
+            background: var(--bg-tertiary);
             display: flex;
             justify-content: center;
         }
@@ -514,7 +514,7 @@
             gap: 0.25rem;
             padding: 1rem 1.25rem;
             margin: 1rem 0;
-            background: linear-gradient(135deg, var(--bg-tertiary) 0%, var(--bg-secondary) 100%);
+            background: var(--bg-secondary);
             border: 1px solid var(--border-primary);
             border-radius: 0.5rem;
             color: var(--text-primary);
@@ -567,7 +567,47 @@
             max-width: 100%;
             height: auto;
         }
-        
+
+        /* Excalidraw note preview card */
+        .excalidraw-note-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 48px 32px;
+            text-align: center;
+        }
+        .excalidraw-note-icon {
+            width: 72px; height: 72px;
+            color: var(--accent-primary);
+            opacity: 0.85;
+        }
+        .excalidraw-note-icon svg { width: 100%; height: 100%; }
+        .excalidraw-note-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .excalidraw-note-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            max-width: 380px;
+        }
+        .excalidraw-open-btn {
+            margin-top: 8px;
+            padding: 10px 24px;
+            background: var(--accent-primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: filter 0.15s;
+        }
+        .excalidraw-open-btn:hover { filter: brightness(1.12); }
+
         /* Editor styling */
         /* Shared editor styles - MUST be identical for textarea and overlay */
         .editor-textarea,
@@ -588,7 +628,7 @@
         }
         
         .editor-textarea {
-            background-color: var(--bg-primary) !important;
+            background: transparent !important;
             color: var(--text-primary) !important;
             resize: none;
             overflow: auto;
@@ -618,7 +658,7 @@
             pointer-events: none;
             overflow: auto;
             color: var(--text-primary);
-            background-color: var(--bg-primary);
+            background: transparent;
             z-index: 0;
             /* Hide scrollbars but allow programmatic scrolling */
             scrollbar-width: none; /* Firefox */
@@ -630,7 +670,7 @@
         
         /* Zen Mode Styles */
         .zen-mode-active {
-            background-color: var(--bg-primary);
+            background: transparent;
         }
         .zen-mode-active .zen-hide {
             display: none !important;
@@ -642,7 +682,7 @@
             height: 100vh;
         }
         .zen-mode-active .zen-editor-container .editor-wrapper {
-            background-color: var(--bg-primary);
+            background: transparent;
         }
         .zen-mode-active .zen-editor-container .editor-textarea,
         .zen-mode-active .zen-editor-container .syntax-overlay {
@@ -841,7 +881,7 @@
             flex-direction: column;
             align-items: center;
             padding: 8px 0;
-            background-color: var(--bg-tertiary);
+            background: transparent;
             border-right: 1px solid var(--border-primary);
         }
         
@@ -932,6 +972,7 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
             color: var(--text-tertiary);
+            background: transparent;
         }
         
         .sidebar-panel-content {
@@ -1315,7 +1356,7 @@
         }
     </style>
 </head>
-<body x-data="noteApp()" x-init="init()" style="background-color: var(--bg-primary);" :class="{'zen-mode-active': zenMode}">
+<body x-data="noteApp()" x-init="init()" :class="{'zen-mode-active': zenMode}">
     
     <!-- Zen Mode Exit Button -->
     <button 
@@ -1347,7 +1388,7 @@
         <div 
             class="flex mobile-sidebar zen-hide" 
             :class="{'mobile-sidebar-open': mobileSidebarOpen}"
-            :style="'width: ' + sidebarWidth + 'px; background-color: var(--bg-secondary); min-width: 200px; max-width: 600px;'"
+            :style="'width: ' + sidebarWidth + 'px; background: transparent; min-width: 200px; max-width: 600px;'"
         >
             <!-- Icon Rail -->
             <div class="icon-rail">
@@ -2016,14 +2057,14 @@
         ></div>
         
         <!-- Main Content Area -->
-        <div class="flex-1 flex flex-col overflow-hidden relative">
+        <div class="flex-1 flex flex-col overflow-hidden relative" style="background: transparent;">
             
             <!-- Graph View Overlay (works from homepage or editor) -->
             <div 
                 x-show="showGraph"
                 id="graph-overlay"
                 class="absolute inset-0"
-                style="background-color: var(--bg-primary); z-index: 50;"
+                style="background: transparent; z-index: 50;"
             >
                 <!-- Graph renders here via vis-network -->
                 <div x-show="!graphLoaded" class="flex items-center justify-center h-full">
@@ -2049,7 +2090,7 @@
             
             <template x-if="!currentNote && !currentMedia">
                 <!-- Notes Homepage -->
-                <div class="flex-1 overflow-y-auto custom-scrollbar" style="background-color: var(--bg-primary);">
+                <div class="flex-1 overflow-y-auto custom-scrollbar" style="background: transparent;">
                     <!-- Mobile Menu Button (Homepage) -->
                     <div class="mobile-menu-button px-4 py-3" style="background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-primary); display: none;">
                         <button 
@@ -2261,9 +2302,9 @@
             
             <template x-if="currentNote || currentMedia">
                 <!-- Editor Area -->
-                <div class="flex-1 flex flex-col overflow-hidden" :class="{'zen-editor-container': zenMode}" style="background-color: var(--bg-primary);">
+                <div class="flex-1 flex flex-col overflow-hidden" :class="{'zen-editor-container': zenMode}" style="background: transparent;">
                     <!-- Toolbar -->
-                    <div class="px-4 py-3 flex items-center justify-between mobile-toolbar zen-hide" style="background-color: var(--bg-secondary); border-bottom: 1px solid var(--border-primary);">
+                    <div class="px-4 py-3 flex items-center justify-between mobile-toolbar zen-hide" style="background: transparent; border-bottom: 1px solid var(--border-primary);">
                         <div class="flex items-center space-x-2">
                             <!-- Mobile Menu Button -->
                             <button 
@@ -2472,7 +2513,7 @@
                             :style="viewMode === 'split' ? `width: ${editorWidth}%;` : 'width: 100%;'"
                         >
                             <!-- Markdown Formatting Toolbar -->
-                            <div class="flex items-center gap-1 px-2 py-1.5 border-b flex-shrink-0" style="background-color: var(--bg-secondary); border-color: var(--border-primary);">
+                            <div class="flex items-center gap-1 px-2 py-1.5 border-b flex-shrink-0" style="background: transparent; border-color: var(--border-primary);">
                                 <button @click="formatText('bold')" class="format-btn" :title="t('format.bold') + ' (Ctrl+B)'">
                                     <span class="font-bold">B</span>
                                 </button>
@@ -2537,7 +2578,7 @@
                                     @dragleave="onEditorDragLeave($event)"
                                     @paste="handlePaste($event)"
                                     :class="'flex-1 w-full resize-none focus:outline-none editor-textarea' + (draggedItem && dropTarget === 'editor' ? ' link-drop-target' : '')"
-                                    :style="'background-color: var(--bg-primary); color: var(--text-primary);' + (draggedItem && dropTarget === 'editor' ? ' outline: 2px dashed var(--accent-primary); outline-offset: -2px; box-shadow: 0 0 20px var(--accent-light);' : '')"
+                                    :style="'background: transparent; color: var(--text-primary);' + (draggedItem && dropTarget === 'editor' ? ' outline: 2px dashed var(--accent-primary); outline-offset: -2px; box-shadow: 0 0 20px var(--accent-light);' : '')"
                                     :placeholder="draggedItem && dropTarget === 'editor' ? t('editor.drop_hint') : t('editor.placeholder')"
                                 ></textarea>
                             </div>
@@ -2557,7 +2598,7 @@
                         <div 
                             x-show="(viewMode === 'preview' || viewMode === 'split') && !currentMedia"
                             class="overflow-y-auto overflow-x-hidden custom-scrollbar"
-                            style="background-color: var(--bg-primary); min-height: 0;"
+                            style="background: transparent; min-height: 0;"
                             :style="viewMode === 'split' ? `width: ${100 - editorWidth}%;` : 'width: 100%;'"
                         >
                             <!-- Note Properties/Metadata Panel -->
@@ -2670,7 +2711,29 @@
                                 </div>
                             </div>
                             
+                            <!-- Excalidraw note card (shown instead of markdown preview) -->
+                            <div
+                                x-show="isExcalidrawNote"
+                                class="excalidraw-note-card"
+                            >
+                                <div class="excalidraw-note-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                        <path stroke-linecap="round" stroke-linejoin="round"
+                                              d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 21h18M3.75 3h16.5M4.5 3v18M19.5 3v18"/>
+                                    </svg>
+                                </div>
+                                <h2 class="excalidraw-note-title" x-text="currentNoteName"></h2>
+                                <p class="excalidraw-note-desc">This is an Excalidraw drawing. Open the editor to view or edit it.</p>
+                                <button
+                                    class="excalidraw-open-btn"
+                                    @click="openExcalidrawEditor()"
+                                >
+                                    ✏ Open Drawing Editor
+                                </button>
+                            </div>
+
                             <div 
+                                x-show="!isExcalidrawNote"
                                 class="p-6 markdown-preview"
                                 :class="{ 'pt-2': getHasMetadata() && currentNote, 'readable-width': readableLineLength }"
                                 x-html="renderedMarkdown"
@@ -2682,7 +2745,7 @@
                         <template x-if="currentMedia">
                             <div 
                                 class="flex-1 flex items-center justify-center overflow-auto"
-                                style="background-color: var(--bg-primary); min-height: 0;"
+                                style="background: transparent; min-height: 0;"
                             >
                                 <!-- Image -->
                                 <template x-if="currentMediaType === 'image'">
@@ -2910,6 +2973,16 @@
             >
                 <span class="text-lg">📁</span>
                 <span x-text="t('sidebar.new_folder')"></span>
+            </button>
+            <button 
+                @click="createExcalidrawNote()"
+                class="w-full px-4 py-2.5 text-sm text-left flex items-center gap-3 transition-colors"
+                style="color: var(--text-primary);"
+                onmouseover="this.style.backgroundColor='var(--bg-hover)'"
+                onmouseout="this.style.backgroundColor='transparent'"
+            >
+                <span class="text-lg">✏️</span>
+                <span>New Drawing</span>
             </button>
             <button 
                 @click.stop="showTemplateModal = true; showNewDropdown = false; mobileSidebarOpen = false"
@@ -3297,6 +3370,13 @@
             });
         }
     </script>
+
+    <!-- ── Ember particle background (z-index:0, behind everything) ────────── -->
+    <script src="/static/static_custom/dismiss-bg.js"></script>
+
+    <!-- ── Neon cursor (z-index:9999, pointer-events:none overlay) ─────────── -->
+    <script type="module" src="/static/static_custom/neon_cursor.js"></script>
+
 </body>
 </html>
 

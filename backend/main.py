@@ -929,6 +929,137 @@ async def get_note(note_path: str):
         raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to load note"))
 
 
+# ============================================================================
+# Excalidraw Editor Endpoints
+# ============================================================================
+
+# Regex to extract the JSON/compressed-json drawing block from an .excalidraw.md file
+import re as _re
+_EXCALIDRAW_JSON_BLOCK_RE = _re.compile(
+    r'%%\s*\n+##\s*Drawing\s*\n+```(?:json|compressed-json)\s*\n([\s\S]*?)\n```\s*\n%%',
+    _re.DOTALL
+)
+
+
+def _build_excalidraw_md(drawing_json: str, note_name: str) -> str:
+    """
+    Wrap raw Excalidraw JSON in the standard .excalidraw.md file structure
+    that Obsidian / the Excalidraw plugin expects.
+    """
+    return (
+        f"---\nexcalidraw-plugin: parsed\ntags: [excalidraw]\n---\n\n"
+        f"# {note_name}\n\n"
+        f"%%\n## Drawing\n```json\n{drawing_json}\n```\n%%\n"
+    )
+
+
+@api_router.get("/excalidraw-data/{note_path:path}", tags=["Excalidraw"])
+async def get_excalidraw_data(note_path: str):
+    """Return the raw Excalidraw JSON for a .excalidraw.md note."""
+    try:
+        notes_dir = config['storage']['notes_dir']
+        # Accept both  "foo.excalidraw.md"  and  "foo.excalidraw"
+        if not (note_path.endswith('.excalidraw.md') or note_path.endswith('.excalidraw')):
+            raise HTTPException(status_code=400, detail="Not an Excalidraw note")
+
+        content = get_note_content(notes_dir, note_path)
+        if content is None:
+            # Brand-new drawing — return empty scaffold
+            return JSONResponse({"elements": [], "appState": {}, "files": {}})
+
+        m = _EXCALIDRAW_JSON_BLOCK_RE.search(content)
+        if m:
+            try:
+                drawing = json.loads(m.group(1).strip())
+                return JSONResponse(drawing)
+            except json.JSONDecodeError:
+                pass
+
+        # Fallback: whole file might just be JSON (bare .excalidraw)
+        try:
+            drawing = json.loads(content)
+            return JSONResponse(drawing)
+        except json.JSONDecodeError:
+            pass
+
+        return JSONResponse({"elements": [], "appState": {}, "files": {}})
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to load Excalidraw data"))
+
+
+@api_router.post("/excalidraw-data/{note_path:path}", tags=["Excalidraw"])
+@limiter.limit("60/minute")
+async def save_excalidraw_data(request: Request, note_path: str, body: dict):
+    """Save Excalidraw JSON back into a .excalidraw.md file."""
+    try:
+        notes_dir = config['storage']['notes_dir']
+        if not (note_path.endswith('.excalidraw.md') or note_path.endswith('.excalidraw')):
+            raise HTTPException(status_code=400, detail="Not an Excalidraw note")
+
+        drawing_json = json.dumps(body, ensure_ascii=False, indent=2)
+        note_name = Path(note_path).stem  # e.g. "MyDiagram.excalidraw"
+        md_content = _build_excalidraw_md(drawing_json, note_name)
+
+        # save_note enforces .md extension — strip it then let save_note re-add it
+        save_path = note_path if note_path.endswith('.md') else note_path + '.md'
+
+        full_path = Path(notes_dir) / save_path
+        if not validate_path_security(notes_dir, full_path):
+            raise HTTPException(status_code=403, detail="Path traversal detected")
+
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(full_path, 'w', encoding='utf-8') as f:
+            f.write(md_content)
+
+        return {"success": True, "path": save_path}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Failed to save Excalidraw data"))
+
+
+@api_router.get("/library-proxy", tags=["Excalidraw"])
+@limiter.limit("30/minute")
+async def library_proxy(request: Request, url: str):
+    """
+    Proxy-fetch an Excalidraw .excalidrawlib file from an external URL.
+    Needed because libraries.excalidraw.com does not send CORS headers that
+    allow direct browser fetches from non-excalidraw.com origins.
+    """
+    import urllib.request
+    import urllib.error
+    import asyncio
+
+    ALLOWED_HOSTS = ("libraries.excalidraw.com", "raw.githubusercontent.com", "gist.githubusercontent.com")
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            raise HTTPException(status_code=400, detail="Only http/https URLs are allowed")
+        if not any(parsed.netloc == h or parsed.netloc.endswith("." + h) for h in ALLOWED_HOSTS):
+            raise HTTPException(status_code=400, detail=f"Host not allowed: {parsed.netloc}")
+
+        def _fetch():
+            req = urllib.request.Request(url, headers={"User-Agent": "NoteDiscovery/1.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                return resp.read()
+
+        raw = await asyncio.to_thread(_fetch)
+        return Response(content=raw, media_type="application/json",
+                        headers={"Cache-Control": "public, max-age=3600"})
+
+    except HTTPException:
+        raise
+    except urllib.error.HTTPError as e:
+        raise HTTPException(status_code=e.code, detail=f"Upstream error: {e.reason}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_message(e, "Library fetch failed"))
+
+
 @api_router.post("/notes/{note_path:path}", tags=["Notes"])
 @limiter.limit("60/minute")
 async def create_or_update_note(request: Request, note_path: str, content: dict):
@@ -1399,6 +1530,18 @@ async def health_check():
     }
 
 
+@app.get("/excalidraw-editor", response_class=HTMLResponse, include_in_schema=False,
+         dependencies=[Depends(require_auth)])
+@limiter.limit("60/minute")
+async def excalidraw_editor_page(request: Request):
+    """Serve the full-screen Excalidraw drawing editor."""
+    editor_path = static_path / "excalidraw-editor.html"
+    async with aiofiles.open(editor_path, 'r', encoding='utf-8') as f:
+        content = await f.read()
+    app_name = config['app']['name']
+    return content.replace('<title>Excalidraw Editor</title>', f'<title>Drawing Editor – {app_name}</title>')
+
+
 # Catch-all route for SPA (Single Page Application) routing
 # This allows URLs like /folder/note to work for direct navigation
 @pages_router.get("/{full_path:path}", response_class=HTMLResponse)
@@ -1417,7 +1560,19 @@ async def catch_all(full_path: str, request: Request):
     async with aiofiles.open(index_path, 'r', encoding='utf-8') as f:
         content = await f.read()
     app_name = config['app']['name']
-    return content.replace('<title>NoteDiscovery</title>', f'<title>{app_name}</title>')
+    content = content.replace('<title>NoteDiscovery</title>', f'<title>{app_name}</title>')
+
+    # Cache-bust app.js using its file mtime so browsers always load the latest version
+    try:
+        app_js_mtime = int((static_path / "app.js").stat().st_mtime)
+        content = content.replace(
+            'src="/static/app.js"',
+            f'src="/static/app.js?v={app_js_mtime}"'
+        )
+    except OSError:
+        pass
+
+    return content
 
 
 # ============================================================================

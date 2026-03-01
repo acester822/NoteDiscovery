@@ -1,0 +1,202 @@
+/* Dark Glass Theme for NoteDiscovery
+ * Sets CSS variables only — lets the app's own Tailwind/Alpine styles do the
+ * layout work. Extra rules are scoped to specific semantic selectors only.
+ * @theme-type: dark
+ */
+
+/* ── Cartograph CF font faces ─────────────────────────────────────────────── */
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-Thin.woff2') format('woff2');
+    font-weight: 100;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-ThinItalic.woff2') format('woff2');
+    font-weight: 100;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-ExtraLight.woff2') format('woff2');
+    font-weight: 200;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-ExtraLightItalic.woff2') format('woff2');
+    font-weight: 200;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-Light.woff2') format('woff2');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-LightItalic.woff2') format('woff2');
+    font-weight: 300;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-Regular.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-RegularItalic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-DemiBold.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-DemiBoldItalic.woff2') format('woff2');
+    font-weight: 600;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-Bold.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-BoldItalic.woff2') format('woff2');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-ExtraBold.woff2') format('woff2');
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-ExtraBoldItalic.woff2') format('woff2');
+    font-weight: 800;
+    font-style: italic;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-Heavy.woff2') format('woff2');
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Cartograph CF';
+    src: url('/static/static_custom/fonts/CartographCF-HeavyItalic.woff2') format('woff2');
+    font-weight: 900;
+    font-style: italic;
+    font-display: swap;
+}
+
+/* ── Variables ────────────────────────────────────────────────────────────── */
+:root[data-theme="dark-glass"] {
+    /* Backgrounds — neutral charcoal, no blue tint */
+    --bg-primary:        rgba(16, 16, 16, 0.88);
+    --bg-secondary:      rgba(24, 24, 24, 0.82);
+    --bg-tertiary:       rgba(34, 34, 34, 0.78);
+    --bg-hover:          rgba(46, 46, 46, 0.85);
+    --bg-active:         rgba(58, 58, 58, 0.90);
+
+    /* Text — warm off-white */
+    --text-primary:      #ede8e3;
+    --text-secondary:    #c8c2bb;
+    --text-tertiary:     #8a8480;
+
+    /* Borders — neutral */
+    --border-primary:    rgba(160, 150, 140, 0.22);
+    --border-secondary:  rgba(140, 130, 120, 0.14);
+
+    /* Accents — ember orange/amber to match particle bg */
+    --accent-primary:    #e07840;
+    --accent-hover:      #c85f28;
+    --accent-light:      rgba(224, 120, 64, 0.14);
+
+    /* Status */
+    --success:           #a3be8c;
+    --error:             #bf616a;
+    --warning:           #ebcb8b;
+
+    /* Shadows */
+    --shadow-sm:  0 1px 4px  rgba(0,0,0,0.5);
+    --shadow-md:  0 4px 16px rgba(0,0,0,0.55);
+    --shadow-lg:  0 10px 40px rgba(0,0,0,0.65);
+}
+
+/* ── Body / background ────────────────────────────────────────────────────── */
+:root[data-theme="dark-glass"] body {
+    font-family: 'Cartograph CF', 'JetBrains Mono', 'Fira Code', monospace;
+    background-color: var(--bg-primary);
+    background-image:
+        linear-gradient(rgba(10,10,10,0.72), rgba(10,10,10,0.72)),
+        url('/static/static_custom/cb.png');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+}
+
+/* ── Sidebar hover — ember glow ───────────────────────────────────────────── */
+:root[data-theme="dark-glass"] #sidebar a:hover,
+:root[data-theme="dark-glass"] #sidebar button:hover {
+    color: #ff9060 !important;
+    text-shadow: 0 0 8px rgba(220,80,30,0.55), 0 0 20px rgba(220,80,30,0.25);
+    transition: all 0.2s ease;
+}
+
+/* ── Editor textarea ──────────────────────────────────────────────────────── */
+:root[data-theme="dark-glass"] .editor-textarea {
+    font-family: 'Cartograph CF', 'JetBrains Mono', monospace !important;
+    caret-color: var(--accent-primary);
+}
+
+/* ── Markdown preview tweaks ──────────────────────────────────────────────── */
+:root[data-theme="dark-glass"] .markdown-preview a:hover {
+    color: #ff9060 !important;
+    text-shadow: 0 0 8px rgba(255,144,96,0.4);
+}
+
+/* ── Scrollbars ───────────────────────────────────────────────────────────── */
+:root[data-theme="dark-glass"] ::-webkit-scrollbar       { width: 6px; height: 6px; }
+:root[data-theme="dark-glass"] ::-webkit-scrollbar-track { background: transparent; }
+:root[data-theme="dark-glass"] ::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.15);
+    border-radius: 999px;
+}
+:root[data-theme="dark-glass"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(224,120,64,0.4);
+}
+
+/* ── Selection ────────────────────────────────────────────────────────────── */
+:root[data-theme="dark-glass"] ::selection {
+    background: rgba(224,120,64,0.25);
+    color: var(--text-primary);
+}

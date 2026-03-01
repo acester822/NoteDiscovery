@@ -3976,7 +3976,7 @@ function noteApp() {
                 }
             });
         },
-        
+
         // Get current theme type (light or dark)
         // Returns: 'light' or 'dark'
         // Used by features that need to adapt to theme brightness (e.g., Mermaid diagrams, Chart.js)
@@ -3986,8 +3986,9 @@ function noteApp() {
                 const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
                 return isDark ? 'dark' : 'light';
             }
-            
+
             // Try to get theme type from loaded theme metadata
+
             const currentThemeData = this.availableThemes.find(t => t.id === this.currentTheme);
             if (currentThemeData && currentThemeData.type) {
                 // Use metadata from theme file (light or dark)
@@ -4004,6 +4005,73 @@ function noteApp() {
         },
         
         
+        // ── Excalidraw helpers ──────────────────────────────────────────────
+
+        /** True when the currently loaded note is an Excalidraw drawing */
+        get isExcalidrawNote() {
+            return (
+                this.currentNote &&
+                (this.currentNote.endsWith('.excalidraw.md') ||
+                 this.currentNote.endsWith('.excalidraw'))
+            );
+        },
+
+        /**
+         * Open the full-screen Excalidraw editor for the current note,
+         * or create a new drawing if no current note.
+         */
+        openExcalidrawEditor() {
+            if (!this.currentNote) return;
+            const back = encodeURIComponent(window.location.href);
+            const note = encodeURIComponent(this.currentNote);
+            window.location.href = `/excalidraw-editor?note=${note}&back=${back}`;
+        },
+
+        /**
+         * Prompt for a name and create a new .excalidraw.md note, then
+         * open it straight in the editor.
+         */
+        async createExcalidrawNote() {
+            this.closeDropdown();
+
+            let targetFolder = '';
+            if (this.dropdownTargetFolder !== null && this.dropdownTargetFolder !== undefined) {
+                targetFolder = this.dropdownTargetFolder;
+            } else {
+                targetFolder = this.selectedHomepageFolder || '';
+            }
+
+            const promptMsg = targetFolder
+                ? `New drawing name (in ${targetFolder}):`
+                : 'New drawing name:';
+            const rawName = prompt(promptMsg);
+            if (!rawName || !rawName.trim()) return;
+
+            // Build the path — always ends in .excalidraw.md
+            let name = rawName.trim().replace(/\.excalidraw(\.md)?$/, '');
+            const notePath = targetFolder
+                ? `${targetFolder}/${name}.excalidraw.md`
+                : `${name}.excalidraw.md`;
+
+            // Create an empty scaffold on the server (so the file exists)
+            try {
+                const res = await fetch(`/api/notes/${encodeURIComponent(notePath)}`, {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify({ content: `---\nexcalidraw-plugin: parsed\ntags: [excalidraw]\n---\n\n# ${name}\n\n%%\n## Drawing\n\`\`\`json\n{"type":"excalidraw","version":2,"source":"notediscovery","elements":[],"appState":{"gridSize":null,"viewBackgroundColor":"#1e1e2e"},"files":{}}\n\`\`\`\n%%\n` }),
+                });
+                if (!res.ok) throw new Error((await res.json()).detail || res.statusText);
+            } catch (e) {
+                alert('Could not create drawing: ' + e.message);
+                return;
+            }
+
+            // Refresh sidebar then open editor
+            await this.loadNotes();
+            const back = encodeURIComponent(window.location.origin + '/');
+            window.location.href = `/excalidraw-editor?note=${encodeURIComponent(notePath)}&back=${back}`;
+        },
+
         // Computed property for rendered markdown
         get renderedMarkdown() {
             if (!this.noteContent) return '<p style="color: var(--text-tertiary);">Nothing to preview yet...</p>';
