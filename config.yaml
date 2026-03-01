@@ -11,7 +11,7 @@ server:
   debug: false
   
 storage:
-  notes_dir: "/home/ftr/Documents/Vault"
+  notes_dir: "/app/data"
   plugins_dir: "./plugins"
   
 search:

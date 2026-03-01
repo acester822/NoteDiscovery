@@ -6,7 +6,7 @@ services:
       - "8001:8000"          # Access at :8001 on the host
     volumes:
       # Your Obsidian vault — mounted read/write so you can edit notes in the UI
-      - /home/ftr/Documents/quartz/content/Vault_of_Obscenities:/app/data
+      - /home/ftr/Documents/Vault:/app/data
       # Custom config (enables auth, sets app name, etc.)
       - ./config.yaml:/app/config.yaml
       # Custom themes directory — add your own .css files here
