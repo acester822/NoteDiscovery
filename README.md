@@ -66,6 +66,7 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - 🕸️ **Graph View** - Interactive visualization of connected notes
 - ⭐ **Favorites** - Star your most-used notes for instant access
 - 📑 **Outline Panel** - Navigate headings with click-to-jump TOC
+- ✏️ **Excalidraw Drawing Editor** - Create and edit diagrams with full library support
 
 ## 🚀 Quick Start
 
@@ -198,6 +199,30 @@ The image includes bundled config, themes, plugins, and locales. To customize, y
 
 An official icon for NoteDiscovery is now available on [Dashboard Icons](https://dashboardicons.com/icons/notediscovery)!  
 Use it in your self-hosted dashboards like Homepage, Homarr, Dashy, Heimdall, etc...
+
+## ✏️ Excalidraw Drawing Editor
+
+NoteDiscovery includes a full-featured drawing editor powered by [Excalidraw](https://excalidraw.com). Any note with a `.excalidraw.md` extension opens in the dedicated drawing editor.
+
+### Features
+
+- 🖊️ **Full Excalidraw canvas** — shapes, arrows, freehand, text, and more
+- 💾 **Auto-save** — changes are automatically saved 2 seconds after you stop drawing; a manual **Save** button is also available
+- 📚 **Library support** — browse and import shape libraries from [libraries.excalidraw.com](https://libraries.excalidraw.com) directly into the editor; libraries persist in your browser via `localStorage`
+- 🔁 **Same-tab library import** — clicking "Add to Excalidraw" on the library site navigates the current tab back to the editor (no popup required) and imports the library automatically via the backend proxy
+- 🌐 **Library proxy** — the backend fetches `.excalidrawlib` files server-side to avoid browser CORS restrictions; allowed sources are `libraries.excalidraw.com`, `raw.githubusercontent.com`, and `gist.githubusercontent.com`
+- 🌙 **Dark theme** — editor always opens in dark mode
+
+### How it works
+
+Drawings are stored as standard `.excalidraw.md` files (Obsidian-compatible frontmatter wrapping the Excalidraw JSON), so they are portable and version-control friendly.
+
+The editor tracks changes using a **scene version fingerprint** (sum of all element version counters) rather than a simple dirty flag, ensuring:
+- The Save button is only enabled when the scene has genuinely changed since the last save
+- Auto-save and manual save don't conflict or double-fire
+- Adding new shapes, editing existing ones, and deletions are all detected correctly
+
+---
 
 ## 📚 Documentation
 
