@@ -1,11 +1,5 @@
 # 📝 NoteDiscovery
 
-![GitHub Stars](https://img.shields.io/github/stars/gamosoft/notediscovery?style=flat)
-![Build](https://img.shields.io/github/actions/workflow/status/gamosoft/notediscovery/docker-publish.yml)
-![Latest Version](https://img.shields.io/github/v/tag/gamosoft/notediscovery)
-![License](https://img.shields.io/github/license/gamosoft/notediscovery)
-
-
 
 > Your Self-Hosted Knowledge Base
 
@@ -23,36 +17,10 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - **Teams** looking for a self-hosted alternative to commercial apps
 - **Anyone** who values simplicity, speed, and ownership
 
----
-
-<p align="center">
-  <a href="https://www.notediscovery.com"><img src="docs/website-button.svg" alt="Official Website"></a>
-  &nbsp;&nbsp;
-  <a href="https://gamosoft-notediscovery-demo.hf.space"><img src="docs/demo-button.svg" alt="Try Live Demo"></a>
-</p>
-<p align="center">
-  <a href="https://www.pikapods.com/pods?run=notediscovery"><img src="https://www.pikapods.com/static/run-button.svg" alt="Run on PikaPods"></a>
-  &nbsp;&nbsp;
-  <a href="https://ko-fi.com/gamosoft"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Buy Me a Coffee at ko-fi.com"></a>
-</p>
-
----
-
-## ✨ Why NoteDiscovery?
-
-### vs. Commercial Apps (Notion, Evernote, Obsidian Sync)
-
-| Feature | NoteDiscovery | Commercial Apps |
-|---------|---------------|-----------------|
-| **Cost** | 100% Free | $xxx/month/year |
-| **Privacy** | Your server, your data | Their servers, their terms |
-| **Speed** | Lightning fast | Depends on internet |
-| **Offline** | Always works | Limited or requires sync |
-| **Customization** | Full control | Limited options |
-| **No Lock-in** | Plain markdown files | Proprietary formats |
+ |
 
 ### Key Benefits
-
+- 📑 **Outline Panel** - Navigate headings with click-to-jump TOC
 - 🔒 **Total Privacy** - Your notes never leave your server
 - 🔐 **Optional Authentication** - Simple password protection for self-hosted deployments
 - 💰 **Zero Cost** - No subscriptions, no hidden fees
@@ -65,7 +33,7 @@ NoteDiscovery is a **lightweight, self-hosted note-taking application** that put
 - 📄 **HTML Export** - Share notes as standalone HTML files
 - 🕸️ **Graph View** - Interactive visualization of connected notes
 - ⭐ **Favorites** - Star your most-used notes for instant access
-- 📑 **Outline Panel** - Navigate headings with click-to-jump TOC
+
 - ✏️ **Excalidraw Drawing Editor** - Create and edit diagrams with full library support
 
 ## 🚀 Quick Start
